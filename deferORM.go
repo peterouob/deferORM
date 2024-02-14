@@ -2,12 +2,14 @@ package deferORM
 
 import (
 	"database/sql"
+	"deferORM/dialect"
 	"deferORM/log"
 	"deferORM/session"
 )
 
 type Engine struct {
-	db *sql.DB
+	db      *sql.DB
+	dialect dialect.Dialect
 }
 
 func NewEngine(driver string, source string) (e *Engine, err error) {
@@ -20,8 +22,15 @@ func NewEngine(driver string, source string) (e *Engine, err error) {
 		log.Error(err)
 		return
 	}
+
+	dial, ok := dialect.GetDialect(driver)
+	if !ok {
+		log.Errof("dialect %s Not found", driver)
+		return
+	}
 	e = &Engine{
-		db: db,
+		db:      db,
+		dialect: dial,
 	}
 	log.PrintInfo("Connect database success")
 	return
@@ -35,5 +44,5 @@ func (engine *Engine) Close() {
 }
 
 func (engine *Engine) NewSession() *session.Session {
-	return session.New(engine.db)
+	return session.New(engine.db, engine.dialect)
 }
